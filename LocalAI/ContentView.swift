@@ -1,6 +1,7 @@
 import SwiftUI
 import Speech
 import AVFoundation
+import Carbon.HIToolbox
 
 // MARK: - Data Models
 
@@ -236,6 +237,13 @@ struct ContentView: View {
         .frame(minWidth: 640, minHeight: 520)
         .onAppear {
             speechManager.requestPermission()
+            NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                if event.keyCode == UInt16(kVK_F5) {
+                    toggleRecording()
+                    return nil
+                }
+                return event
+            }
         }
     }
 
@@ -383,6 +391,48 @@ struct ContentView: View {
         return "Hold to speak"
     }
 
+    // MARK: - Recording Actions
+
+    private func startRecording() {
+        guard !isHolding, !isProcessing else { return }
+        isHolding = true
+        if ttsManager.isSpeaking {
+            ttsManager.stop()
+        }
+        speechManager.startRecording()
+    }
+
+    private func stopRecordingAndSend() {
+        guard isHolding else { return }
+        isHolding = false
+        let transcription = speechManager.stopRecording()
+
+        guard !transcription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        let userText = transcription
+        messages.append(Message(role: "user", content: userText))
+        isProcessing = true
+
+        Task {
+            let reply = await ollamaService.send(prompt: userText, model: selectedPersona)
+            await MainActor.run {
+                isProcessing = false
+                if let reply = reply {
+                    messages.append(Message(role: "assistant", content: reply))
+                    ttsManager.speak(reply)
+                }
+            }
+        }
+    }
+
+    private func toggleRecording() {
+        if isHolding {
+            stopRecordingAndSend()
+        } else {
+            startRecording()
+        }
+    }
+
     // MARK: - Hold-to-Speak Button
 
     private var holdToSpeakButton: some View {
@@ -396,36 +446,8 @@ struct ContentView: View {
             .cornerRadius(12)
             .gesture(
                 DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        guard !isHolding, !isProcessing else { return }
-                        isHolding = true
-                        if ttsManager.isSpeaking {
-                            ttsManager.stop()
-                        }
-                        speechManager.startRecording()
-                    }
-                    .onEnded { _ in
-                        guard isHolding else { return }
-                        isHolding = false
-                        let transcription = speechManager.stopRecording()
-
-                        guard !transcription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-
-                        let userText = transcription
-                        messages.append(Message(role: "user", content: userText))
-                        isProcessing = true
-
-                        Task {
-                            let reply = await ollamaService.send(prompt: userText, model: selectedPersona)
-                            await MainActor.run {
-                                isProcessing = false
-                                if let reply = reply {
-                                    messages.append(Message(role: "assistant", content: reply))
-                                    ttsManager.speak(reply)
-                                }
-                            }
-                        }
-                    }
+                    .onChanged { _ in startRecording() }
+                    .onEnded { _ in stopRecordingAndSend() }
             )
     }
 }
