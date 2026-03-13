@@ -8,6 +8,6 @@ struct LocalAIApp: App {
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
-        .defaultSize(width: 640, height: 520)
+        .defaultSize(width: 400, height: 360)
     }
 }

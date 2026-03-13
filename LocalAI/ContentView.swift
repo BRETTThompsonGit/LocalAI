@@ -234,7 +234,7 @@ struct ContentView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 16)
         }
-        .frame(minWidth: 640, minHeight: 520)
+        .frame(minWidth: 400, minHeight: 360)
         .onAppear {
             speechManager.requestPermission()
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
@@ -332,14 +332,34 @@ struct ContentView: View {
         }
     }
 
+    @State private var copiedMessageId: UUID?
+
     private func messageBubble(_ message: Message) -> some View {
         let isUser = message.role == "user"
-        return HStack {
+        let isCopied = copiedMessageId == message.id
+        return HStack(alignment: .top) {
             if isUser { Spacer(minLength: 60) }
             VStack(alignment: isUser ? .trailing : .leading, spacing: 4) {
-                Text(message.role.uppercased())
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundColor(.secondary)
+                HStack(spacing: 6) {
+                    Text(message.role.uppercased())
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundColor(.secondary)
+                    Button {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(message.content, forType: .string)
+                        copiedMessageId = message.id
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            if copiedMessageId == message.id {
+                                copiedMessageId = nil
+                            }
+                        }
+                    } label: {
+                        Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
+                            .font(.system(size: 10))
+                            .foregroundColor(isCopied ? .green : .secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
                 Text(message.content)
                     .textSelection(.enabled)
                     .padding(.horizontal, 12)

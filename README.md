@@ -102,10 +102,14 @@ Mic -> SpeechManager (on-device STT) -> OllamaService (localhost) -> TTSManager 
 ## UI Overview
 
 - **Header** — "LOCAL AI" title, persona picker (segmented control), Clear button
-- **Message list** — Chat bubbles (blue for user, gray for assistant) with selectable text
+- **Message list** — Chat bubbles (blue for user, gray for assistant) with selectable text and a copy-to-clipboard button on each message
 - **Transcription preview** — Live transcription shown while recording
 - **Status indicator** — Color-coded dot: red (listening), orange (thinking), green (speaking), blue (idle)
 - **Hold-to-speak button** — Full-width button at the bottom; hold to record, release to send
+
+## Keyboard Shortcut
+
+**F5** toggles recording — press once to start, press again to stop and send. Designed for Stream Deck integration: create a Hotkey action mapped to F5 on your Stream Deck.
 
 ## Dependencies
 
