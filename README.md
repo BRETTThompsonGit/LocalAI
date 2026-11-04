@@ -1,4 +1,4 @@
-# LocalAI
+# LocalAI-Voice
 
 A native macOS SwiftUI app that provides a voice interface to a locally running [Ollama](https://ollama.com) instance. Everything runs on your machine — no data is sent to the internet.
 
